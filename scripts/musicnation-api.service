@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────────────────────
+# MusicNation API — systemd service file
+# Install: sudo cp scripts/musicnation-api.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable musicnation-api
+#          sudo systemctl start musicnation-api
+# ─────────────────────────────────────────────────────────────
+
+[Unit]
+Description=MusicNation Flask API Service
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/musicnation-cloud-platform
+ExecStart=/usr/bin/python3 /home/ubuntu/musicnation-cloud-platform/app/app.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5s
+
+# Environment
+Environment="FLASK_ENV=production"
+Environment="MYSQL_HOST=localhost"
+Environment="MYSQL_USER=musicnation"
+Environment="MYSQL_PASSWORD=musicnation123"
+Environment="MYSQL_DB=musicnation_db"
+Environment="AWS_DEFAULT_REGION=us-east-1"
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=musicnation-api
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

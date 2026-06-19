@@ -1,0 +1,19 @@
+# Secure Cloud Environment Exclusions
+*.pem
+*.ppk
+*.pkcs12
+secrets.txt
+venv/
+env/
+ENV/
+.venv/
+*.log
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.DS_Store
+
+# Environment variables — never commit credentials
+.env
+*.env

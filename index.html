@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MusicNation — Digital Cloud Streamer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar          { width: 6px; }
+    ::-webkit-scrollbar-track    { background: #121212; }
+    ::-webkit-scrollbar-thumb    { background: #282828; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3e3e3e; }
+
+    /* Smooth progress-bar animation */
+    #playback-progress-fill-node { transition: width 0.3s ease; }
+
+    /* Spinning disc icon */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .disc-spin { animation: spin 2s linear infinite; }
+
+    /* Modal backdrop */
+    .modal-backdrop {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    /* View sections */
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
+    /* Volume slider */
+    #vol-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 80px; height: 4px;
+      background: #282828; border-radius: 2px; outline: none; cursor: pointer;
+    }
+    #vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%; background: white; cursor: pointer;
+    }
+    #vol-slider:hover::-webkit-slider-thumb { background: #1DB954; }
+
+    /* Lyrics text */
+    #lyrics-body { white-space: pre-line; line-height: 2; }
+
+    /* Active nav button */
+    .nav-btn-active { background: #282828 !important; color: white !important; }
+
+    /* Queue item highlight */
+    .queue-item-active { background: #1db95422 !important; border-color: #1DB954 !important; }
+  </style>
+</head>
+
+<body class="bg-[#121212] text-white font-sans antialiased h-screen flex flex-col overflow-hidden">
+
+  <!-- ═══════════════════════════════════════
+       LAYOUT WRAPPER
+  ════════════════════════════════════════ -->
+  <div class="flex flex-1 h-full overflow-hidden">
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="w-64 bg-black flex flex-col justify-between p-6 hidden md:flex z-10"
+           aria-label="Main Navigation">
+
+      <!-- Top: Logo + Nav -->
+      <div class="space-y-6">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3 text-[#1DB954]">
+          <i class="fa-solid fa-circle-nodes text-3xl animate-pulse"></i>
+          <span class="text-xl font-bold tracking-tight text-white">
+            Music<span class="text-[#1DB954]">Nation</span>
+          </span>
+        </div>
+
+        <!-- Navigation links -->
+        <nav class="space-y-1" aria-label="Sidebar Menu">
+          <button onclick="showView('home')" id="nav-home"
+             class="w-full flex items-center space-x-4 text-white font-semibold py-2 px-3 bg-[#282828] rounded-md">
+            <i class="fa-solid fa-house text-lg w-5 text-center"></i>
+            <span>Home Portal</span>
+          </button>
+          <button onclick="showView('search')" id="nav-search"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-magnifying-glass text-lg w-5 text-center"></i>
+            <span>Search Catalog</span>
+          </button>
+          <button onclick="showView('library')" id="nav-library"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-layer-group text-lg w-5 text-center"></i>
+            <span>Cloud Library</span>
+          </button>
+          <button onclick="showView('analytics')" id="nav-analytics"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-chart-line text-lg w-5 text-center"></i>
+            <span>Analytics</span>
+          </button>
+          <button onclick="showView('monitoring')" id="nav-monitoring"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-gauge-high text-lg w-5 text-center"></i>
+            <span>Monitoring</span>
+          </button>
+          <button onclick="showView('pricing')" id="nav-pricing"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-tags text-lg w-5 text-center"></i>
+            <span>Pricing</span>
+          </button>
+          <button onclick="showView('access')" id="nav-access"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-shield-halved text-lg w-5 text-center"></i>
+            <span>Access Control</span>
+          </button>
+          <button onclick="showView('workflow')" id="nav-workflow"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-diagram-next text-lg w-5 text-center"></i>
+            <span>Workflow</span>
+          </button>
+          <button onclick="showView('executive')" id="nav-executive"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-chart-pie text-lg w-5 text-center"></i>
+            <span>Executive Report</span>
+          </button>
+          <button onclick="showView('scalability')" id="nav-scalability"
+             class="w-full flex items-center space-x-4 text-gray-400 hover:text-white font-semibold py-2 px-3 rounded-md transition">
+            <i class="fa-solid fa-arrows-up-down-left-right text-lg w-5 text-center"></i>
+            <span>Scalability</span>
+          </button>
+        </nav>
+
+        <!-- Divider -->
+        <div class="border-t border-[#282828]"></div>
+
+        <!-- Recent plays placeholder -->
+        <div class="space-y-2">
+          <p class="text-xs font-bold uppercase tracking-widest text-gray-500 px-3">Recent</p>
+          <div id="recent-plays" class="space-y-1 text-sm text-gray-400">
+            <p class="px-3 text-xs text-gray-600 italic">No tracks played yet</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom: AWS Status Card -->
+      <div class="bg-[#181818] p-4 rounded-xl border border-[#282828] space-y-3">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400 font-semibold uppercase tracking-wide">AWS Infrastructure</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                        bg-green-500/10 text-green-400">
+            <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-green-400 animate-ping"></span>
+            Live
+          </span>
+        </div>
+        <div class="text-sm space-y-1">
+          <p class="text-gray-300 font-mono text-xs truncate">Node: 3.108.56.235</p>
+          <p class="text-gray-500 text-xs">Region: ap-south-1</p>
+          <p class="text-gray-500 text-xs">Service: EC2 + Flask + Nginx</p>
+        </div>
+        <!-- Health check indicator -->
+        <button onclick="pingHealthCheck()"
+                class="w-full text-xs text-gray-400 hover:text-white border border-[#282828]
+                       hover:border-gray-500 rounded-lg py-1.5 transition"
+                aria-label="Ping health endpoint">
+          <i class="fa-solid fa-stethoscope mr-1.5"></i>
+          <span id="health-label">Ping Health Check</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ─── MAIN CONTENT ─── -->
+    <main class="flex-1 bg-gradient-to-b from-[#1e1e1e] to-[#121212] p-6 overflow-y-auto pb-36">
+
+      <!-- Top bar -->
+      <header class="flex justify-between items-center mb-8">
+        <div class="flex items-center space-x-3">
+          <button class="w-8 h-8 rounded-full bg-black/70 flex items-center justify-center
+                         text-gray-400 hover:text-white transition"
+                  aria-label="Go Back">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </button>
+          <button class="w-8 h-8 rounded-full bg-black/70 flex items-center justify-center
+                         text-gray-400 hover:text-white transition"
+                  aria-label="Go Forward">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-3 bg-black/40 px-4 py-2 rounded-full
+                    border border-white/10">
+          <div class="w-6 h-6 rounded-full bg-[#FF9900] text-black font-bold
+                      flex items-center justify-center text-xs">
+            AWS
+          </div>
+          <span class="text-sm font-medium tracking-wide">Administrator Portal</span>
+        </div>
+      </header>
+
+      <!-- Hero Banner -->
+      <div id="view-home" class="view-section active">
+
+      <section class="bg-gradient-to-r from-[#5016d1] to-[#168ed1] rounded-2xl p-8 mb-8
+                      relative overflow-hidden shadow-2xl group"
+               aria-label="Featured Platform Card">
+        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition duration-500"></div>
+        <div class="relative z-10 max-w-lg space-y-4">
+          <span class="text-xs font-bold uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full">
+            Cloud Deployment Architecture
+          </span>
+          <h1 class="text-4xl font-extrabold tracking-tight md:text-5xl">
+            MusicNation<br/>Architecture Live
+          </h1>
+          <p class="text-white/80 text-sm md:text-base leading-relaxed">
+            Streaming dynamically through an integrated cluster of AWS EC2 compute nodes,
+            distributed S3 object storage, and a Flask microservice backend — all live on
+            <span class="font-semibold text-white">ap-south-1</span>.
+          </p>
+          <div class="flex items-center space-x-4 pt-2">
+            <button onclick="loadCatalogData(); mountAllTracks()"
+                    class="inline-flex items-center px-5 py-2.5 bg-white text-black text-sm
+                           font-bold rounded-full hover:bg-gray-100 transition shadow-lg">
+              <i class="fa-solid fa-play mr-2 text-xs"></i>Play All
+            </button>
+            <button onclick="openArchModal()"
+                    class="inline-flex items-center px-5 py-2.5 bg-white/10 text-white text-sm
+                           font-semibold rounded-full hover:bg-white/20 transition border border-white/20">
+              <i class="fa-solid fa-circle-info mr-2 text-xs"></i>Architecture
+            </button>
+          </div>
+        </div>
+        <i class="fa-solid fa-cloud-arrow-up absolute right-8 bottom-4 text-9xl
+                  text-white/10 hidden lg:block pointer-events-none"></i>
+      </section>
+
+      <!-- Stats Row -->
+      <section class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8" aria-label="Platform Statistics">
+        <div class="bg-[#181818] rounded-xl p-4 border border-[#282828] space-y-1">
+          <p class="text-xs text-gray-500 uppercase tracking-widest">Tracks Live</p>
+          <p id="stat-tracks" class="text-2xl font-bold text-white">—</p>
+        </div>
+        <div class="bg-[#181818] rounded-xl p-4 border border-[#282828] space-y-1">
+          <p class="text-xs text-gray-500 uppercase tracking-widest">API Status</p>
+          <p id="stat-api" class="text-2xl font-bold text-gray-400">—</p>
+        </div>
+        <div class="bg-[#181818] rounded-xl p-4 border border-[#282828] space-y-1">
+          <p class="text-xs text-gray-500 uppercase tracking-widest">Region</p>
+          <p class="text-2xl font-bold text-white">ap-1</p>
+        </div>
+        <div class="bg-[#181818] rounded-xl p-4 border border-[#282828] space-y-1">
+          <p class="text-xs text-gray-500 uppercase tracking-widest">Instance</p>
+          <p class="text-2xl font-bold text-[#FF9900]">EC2</p>
+        </div>
+      </section>
+
+      <!-- Catalog Grid -->
+      <section aria-label="Track Catalog">
+        <div class="flex justify-between items-end mb-6">
+          <div>
+            <h2 class="text-2xl font-bold tracking-tight">Active Cloud Audio Catalog</h2>
+            <p class="text-gray-400 text-sm mt-1">
+              Real-time datasets served from your Flask microservice on EC2.
+            </p>
+          </div>
+          <button onclick="loadCatalogData()"
+                  class="text-xs font-bold tracking-widest uppercase px-4 py-2 border
+                         border-gray-600 rounded-full hover:border-white transition-all"
+                  aria-label="Refresh catalog">
+            <i class="fa-solid fa-arrows-rotate mr-2"></i>Sync Records
+          </button>
+        </div>
+
+        <!-- Track cards injected here by JS -->
+        <div id="catalog-grid-display"
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Skeleton loader -->
+          <div class="bg-[#181818] p-5 rounded-xl border border-[#282828] animate-pulse space-y-4">
+            <div class="h-5 bg-gray-700 rounded w-2/3"></div>
+            <div class="h-4 bg-gray-800 rounded w-1/2"></div>
+          </div>
+          <div class="bg-[#181818] p-5 rounded-xl border border-[#282828] animate-pulse space-y-4">
+            <div class="h-5 bg-gray-700 rounded w-3/4"></div>
+            <div class="h-4 bg-gray-800 rounded w-1/3"></div>
+          </div>
+          <div class="bg-[#181818] p-5 rounded-xl border border-[#282828] animate-pulse space-y-4">
+            <div class="h-5 bg-gray-700 rounded w-1/2"></div>
+            <div class="h-4 bg-gray-800 rounded w-2/3"></div>
+          </div>
+        </div>
+      </section>
+
+      </div><!-- end view-home -->
+
+      <!-- ═══ SEARCH VIEW ═══ -->
+      <div id="view-search" class="view-section">
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold tracking-tight mb-1">Search Catalog</h2>
+          <p class="text-gray-400 text-sm">Find tracks by title or artist</p>
+        </div>
+        <div class="relative mb-6">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+          <input id="search-input" type="text" placeholder="Search songs, artists…"
+                 oninput="runSearch(this.value)"
+                 class="w-full bg-[#282828] text-white placeholder-gray-500 rounded-full
+                        py-3 pl-11 pr-5 text-sm outline-none focus:ring-2 focus:ring-[#1DB954]
+                        border border-transparent focus:border-[#1DB954] transition" />
+        </div>
+        <div id="search-results"
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <p class="text-gray-500 text-sm col-span-full px-1">Start typing to search…</p>
+        </div>
+      </div>
+
+      <!-- ═══ CLOUD LIBRARY VIEW ═══ -->
+      <div id="view-library" class="view-section">
+        <div class="flex justify-between items-end mb-6">
+          <div>
+            <h2 class="text-2xl font-bold tracking-tight mb-1">Cloud Library</h2>
+            <p class="text-gray-400 text-sm">Files stored in your S3 bucket — <span class="font-mono text-[#FF9900]">musicnation-tracks</span></p>
+          </div>
+          <button onclick="loadLibrary()"
+                  class="text-xs font-bold tracking-widest uppercase px-4 py-2 border
+                         border-gray-600 rounded-full hover:border-white transition-all">
+            <i class="fa-solid fa-arrows-rotate mr-2"></i>Refresh
+          </button>
+        </div>
+        <div id="library-list" class="space-y-3">
+          <p class="text-gray-500 text-sm">Loading S3 bucket contents…</p>
+        </div>
+      </div>
+
+      <!-- ═══ ANALYTICS VIEW ═══ -->
+      <div id="view-analytics" class="view-section">
+        <div class="flex justify-between items-end mb-6">
+          <div><h2 class="text-2xl font-bold tracking-tight mb-1">Analytics & Reporting</h2>
+          <p class="text-gray-400 text-sm">Real-time play data from your database</p></div>
+          <button onclick="loadAnalytics()" class="text-xs font-bold tracking-widest uppercase px-4 py-2 border border-gray-600 rounded-full hover:border-white transition-all">
+            <i class="fa-solid fa-arrows-rotate mr-2"></i>Refresh</button>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div class="bg-[#181818] rounded-xl p-4 border border-[#282828]"><p class="text-xs text-gray-500 uppercase tracking-widest">Total Plays</p><p id="an-total" class="text-2xl font-bold text-white mt-1">—</p></div>
+          <div class="bg-[#181818] rounded-xl p-4 border border-[#282828]"><p class="text-xs text-gray-500 uppercase tracking-widest">Top Track</p><p id="an-top" class="text-sm font-bold text-[#1DB954] mt-1 truncate">—</p></div>
+          <div class="bg-[#181818] rounded-xl p-4 border border-[#282828]"><p class="text-xs text-gray-500 uppercase tracking-widest">Regions</p><p id="an-regions" class="text-2xl font-bold text-white mt-1">—</p></div>
+          <div class="bg-[#181818] rounded-xl p-4 border border-[#282828]"><p class="text-xs text-gray-500 uppercase tracking-widest">Tracks Active</p><p id="an-tracks" class="text-2xl font-bold text-[#FF9900] mt-1">—</p></div>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] overflow-hidden mb-6">
+          <div class="p-4 border-b border-[#282828]"><h3 class="font-bold text-sm">Top Tracks by Play Count</h3></div>
+          <div id="an-top-table" class="divide-y divide-[#282828]"><p class="text-gray-500 text-sm p-4">Loading…</p></div>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] overflow-hidden">
+          <div class="p-4 border-b border-[#282828]"><h3 class="font-bold text-sm">Recent Play Activity</h3></div>
+          <div id="an-recent" class="divide-y divide-[#282828]"><p class="text-gray-500 text-sm p-4">Loading…</p></div>
+        </div>
+      </div>
+
+      <!-- ═══ MONITORING VIEW ═══ -->
+      <div id="view-monitoring" class="view-section">
+        <div class="flex justify-between items-end mb-6">
+          <div><h2 class="text-2xl font-bold tracking-tight mb-1">System Monitoring</h2>
+          <p class="text-gray-400 text-sm">Live CPU, memory, disk and API health</p></div>
+          <button onclick="loadMetrics()" class="text-xs font-bold tracking-widest uppercase px-4 py-2 border border-gray-600 rounded-full hover:border-white transition-all">
+            <i class="fa-solid fa-arrows-rotate mr-2"></i>Refresh</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-[#181818] rounded-xl p-5 border border-[#282828] space-y-3">
+            <div class="flex justify-between items-center"><p class="text-xs text-gray-500 uppercase tracking-widest">CPU Usage</p><i class="fa-solid fa-microchip text-gray-600"></i></div>
+            <p id="mon-cpu" class="text-3xl font-bold text-white">—</p>
+            <div class="w-full h-2 bg-[#282828] rounded-full"><div id="mon-cpu-bar" class="h-full rounded-full bg-blue-500 transition-all duration-700" style="width:0%"></div></div>
+          </div>
+          <div class="bg-[#181818] rounded-xl p-5 border border-[#282828] space-y-3">
+            <div class="flex justify-between items-center"><p class="text-xs text-gray-500 uppercase tracking-widest">Memory</p><i class="fa-solid fa-memory text-gray-600"></i></div>
+            <p id="mon-mem" class="text-3xl font-bold text-white">—</p>
+            <div class="w-full h-2 bg-[#282828] rounded-full"><div id="mon-mem-bar" class="h-full rounded-full bg-purple-500 transition-all duration-700" style="width:0%"></div></div>
+          </div>
+          <div class="bg-[#181818] rounded-xl p-5 border border-[#282828] space-y-3">
+            <div class="flex justify-between items-center"><p class="text-xs text-gray-500 uppercase tracking-widest">Disk</p><i class="fa-solid fa-hard-drive text-gray-600"></i></div>
+            <p id="mon-disk" class="text-3xl font-bold text-white">—</p>
+            <div class="w-full h-2 bg-[#282828] rounded-full"><div id="mon-disk-bar" class="h-full rounded-full bg-yellow-500 transition-all duration-700" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] overflow-hidden mb-6">
+          <div class="p-4 border-b border-[#282828]"><h3 class="font-bold text-sm">Service Status</h3></div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#282828]">
+            <div class="p-4 text-center space-y-1"><i class="fa-brands fa-python text-2xl text-blue-400"></i><p class="text-xs text-gray-500">Flask API</p><p id="mon-api" class="text-xs font-bold text-green-400">Checking…</p></div>
+            <div class="p-4 text-center space-y-1"><i class="fa-solid fa-database text-2xl text-orange-400"></i><p class="text-xs text-gray-500">MySQL DB</p><p id="mon-db" class="text-xs font-bold text-gray-400">Checking…</p></div>
+            <div class="p-4 text-center space-y-1"><i class="fa-brands fa-aws text-2xl text-[#FF9900]"></i><p class="text-xs text-gray-500">AWS S3</p><p id="mon-s3" class="text-xs font-bold text-gray-400">Checking…</p></div>
+            <div class="p-4 text-center space-y-1"><i class="fa-solid fa-server text-2xl text-gray-400"></i><p class="text-xs text-gray-500">Nginx</p><p class="text-xs font-bold text-green-400">Configured</p></div>
+          </div>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] overflow-hidden">
+          <div class="p-4 border-b border-[#282828]"><h3 class="font-bold text-sm">Metrics History (last 12 readings)</h3></div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-gray-400">
+              <thead class="bg-[#282828] text-gray-500 uppercase tracking-widest">
+                <tr><th class="px-4 py-2 text-left">Time</th><th class="px-4 py-2 text-right">CPU</th><th class="px-4 py-2 text-right">Memory</th><th class="px-4 py-2 text-right">Disk</th></tr>
+              </thead>
+              <tbody id="mon-history" class="divide-y divide-[#282828]">
+                <tr><td colspan="4" class="px-4 py-3 text-center text-gray-600">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PRICING VIEW ═══ -->
+      <div id="view-pricing" class="view-section">
+        <div class="mb-6"><h2 class="text-2xl font-bold tracking-tight mb-1">Infrastructure Pricing</h2>
+        <p class="text-gray-400 text-sm">AWS cost estimates for MusicNation platform</p></div>
+        <div class="bg-gradient-to-r from-[#FF9900]/20 to-[#FF9900]/5 border border-[#FF9900]/30 rounded-xl p-5 mb-6 flex justify-between items-center">
+          <div><p class="text-xs text-[#FF9900] uppercase tracking-widest font-semibold">Estimated Monthly Total</p>
+          <p class="text-4xl font-extrabold text-white mt-1">$127 <span class="text-lg font-normal text-gray-400">/ month</span></p></div>
+          <i class="fa-brands fa-aws text-6xl text-[#FF9900]/30"></i>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] overflow-hidden mb-6">
+          <div class="p-4 border-b border-[#282828]"><h3 class="font-bold text-sm">Service Cost Breakdown</h3></div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-[#282828] text-xs text-gray-500 uppercase tracking-widest">
+                <tr><th class="px-4 py-3 text-left">Service</th><th class="px-4 py-3 text-left">Tier / Config</th><th class="px-4 py-3 text-right">Monthly</th></tr>
+              </thead>
+              <tbody class="divide-y divide-[#282828] text-gray-300">
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-server text-[#FF9900] mr-2"></i>EC2 t3.medium</td><td class="px-4 py-3 text-gray-400">2 vCPU · 4GB RAM · On-Demand</td><td class="px-4 py-3 text-right font-mono">$30.22</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-hard-drive text-blue-400 mr-2"></i>EBS gp3 30GB</td><td class="px-4 py-3 text-gray-400">Root volume + IOPS</td><td class="px-4 py-3 text-right font-mono">$2.40</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-bucket text-green-400 mr-2"></i>S3 Standard</td><td class="px-4 py-3 text-gray-400">~33.8MB tracks + backups</td><td class="px-4 py-3 text-right font-mono">$0.02</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-network-wired text-purple-400 mr-2"></i>Data Transfer</td><td class="px-4 py-3 text-gray-400">S3 egress ~10GB/month</td><td class="px-4 py-3 text-right font-mono">$0.90</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-database text-orange-400 mr-2"></i>RDS MySQL t3.micro</td><td class="px-4 py-3 text-gray-400">Single-AZ · 20GB storage</td><td class="px-4 py-3 text-right font-mono">$13.00</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i>ElastiCache t3.micro</td><td class="px-4 py-3 text-gray-400">Redis · Session caching</td><td class="px-4 py-3 text-right font-mono">$11.52</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-globe text-cyan-400 mr-2"></i>CloudFront CDN</td><td class="px-4 py-3 text-gray-400">100GB/month · Global edge</td><td class="px-4 py-3 text-right font-mono">$8.50</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-scale-balanced text-indigo-400 mr-2"></i>ALB</td><td class="px-4 py-3 text-gray-400">Application Load Balancer</td><td class="px-4 py-3 text-right font-mono">$16.20</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-eye text-pink-400 mr-2"></i>CloudWatch</td><td class="px-4 py-3 text-gray-400">Metrics + Logs + Alarms</td><td class="px-4 py-3 text-right font-mono">$5.00</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-shield text-red-400 mr-2"></i>WAF + Shield Std</td><td class="px-4 py-3 text-gray-400">Web ACL + DDoS protection</td><td class="px-4 py-3 text-right font-mono">$15.00</td></tr>
+                <tr><td class="px-4 py-3 font-semibold text-white"><i class="fa-solid fa-envelope text-gray-400 mr-2"></i>SQS</td><td class="px-4 py-3 text-gray-400">Ingestion queue · 1M req</td><td class="px-4 py-3 text-right font-mono">$0.40</td></tr>
+                <tr class="bg-[#FF9900]/5"><td colspan="2" class="px-4 py-3 font-bold text-white">Estimated Monthly Total</td><td class="px-4 py-3 text-right font-bold text-[#FF9900] font-mono text-base">$103.16</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div class="bg-[#181818] rounded-xl border border-[#282828] p-5 space-y-3">
+            <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-map-pin text-[#FF9900]"></i>Multi-Region Costs</h3>
+            <div class="space-y-2 text-sm text-gray-400">
+              <div class="flex justify-between"><span>Primary (ap-south-1 Mumbai)</span><span class="font-mono text-white">$103/mo</span></div>
+              <div class="flex justify-between"><span>DR Region (us-east-1 Virginia)</span><span class="font-mono text-white">+$45/mo</span></div>
+              <div class="flex justify-between"><span>Route 53 Failover</span><span class="font-mono text-white">+$0.50/mo</span></div>
+              <div class="flex justify-between border-t border-[#282828] pt-2 text-white font-semibold"><span>Multi-Region Total</span><span class="font-mono text-[#FF9900]">$148.50/mo</span></div>
+            </div>
+          </div>
+          <div class="bg-[#181818] rounded-xl border border-[#282828] p-5 space-y-3">
+            <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-shield-halved text-green-400"></i>RPO / RTO Objectives</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between text-gray-400"><span>Recovery Point Objective (RPO)</span><span class="text-white">24 hours</span></div>
+              <div class="flex justify-between text-gray-400"><span>Recovery Time Objective (RTO)</span><span class="text-white">4 hours</span></div>
+              <div class="flex justify-between text-gray-400"><span>Backup frequency</span><span class="text-white">Daily 2AM</span></div>
+              <div class="flex justify-between text-gray-400"><span>S3 backup cost</span><span class="text-white font-mono">~$0.02/mo</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] p-5">
+          <h3 class="font-bold text-sm mb-3 flex items-center gap-2"><i class="fa-solid fa-lightbulb text-yellow-400"></i>Cost Optimization Recommendations</h3>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li class="flex gap-3"><i class="fa-solid fa-circle-check text-green-400 mt-0.5 flex-shrink-0"></i><span><strong class="text-white">Reserved Instances:</strong> 1-year EC2 Reserved saves ~38%</span></li>
+            <li class="flex gap-3"><i class="fa-solid fa-circle-check text-green-400 mt-0.5 flex-shrink-0"></i><span><strong class="text-white">S3 Intelligent Tiering:</strong> Auto-moves infrequent tracks to cheaper storage tiers</span></li>
+            <li class="flex gap-3"><i class="fa-solid fa-circle-check text-green-400 mt-0.5 flex-shrink-0"></i><span><strong class="text-white">CloudFront Caching:</strong> Reduces S3 egress by up to 70%</span></li>
+            <li class="flex gap-3"><i class="fa-solid fa-circle-check text-green-400 mt-0.5 flex-shrink-0"></i><span><strong class="text-white">Auto Scaling:</strong> Scale EC2 between 1–4 instances based on CPU load</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══ ACCESS CONTROL VIEW ═══ -->
+      <div id="view-access" class="view-section">
+        <div class="mb-6"><h2 class="text-2xl font-bold tracking-tight mb-1">Role-Based Access Control</h2>
+        <p class="text-gray-400 text-sm">Platform users, roles, and audit logs</p></div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-red-500/10 to-transparent border border-red-500/20 rounded-xl p-4 space-y-2">
+            <div class="flex items-center gap-2"><i class="fa-solid fa-crown text-red-400"></i><span class="font-bold text-sm">Admin</span></div>
+            <p class="text-xs text-gray-400">Full platform access — infrastructure, users, billing, audit logs</p>
+          </div>
+          <div class="bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 rounded-xl p-4 space-y-2">
+            <div class="flex items-center gap-2"><i class="fa-solid fa-user-tie text-blue-400"></i><span class="font-bold text-sm">Manager</span></div>
+            <p class="text-xs text-gray-400">Catalog management, analytics, reporting</p>
+          </div>
+          <div class="bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 rounded-xl p-4 space-y-2">
+            <div class="flex items-center gap-2"><i class="fa-solid fa-user text-green-400"></i><span class="font-bold text-sm">Staff</span></div>
+            <p class="text-xs text-gray-400">Read-only catalog access and play history</p>
+          </div>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] overflow-hidden mb-6">
+          <div class="flex justify-between items-center p-4 border-b border-[#282828]">
+            <h3 class="font-bold text-sm">Platform Users</h3>
+            <button onclick="loadUsers()" class="text-xs text-gray-400 hover:text-white border border-[#282828] hover:border-gray-500 rounded-lg px-3 py-1 transition">
+              <i class="fa-solid fa-arrows-rotate mr-1"></i>Refresh</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-[#282828] text-xs text-gray-500 uppercase tracking-widest">
+                <tr><th class="px-4 py-2 text-left">User</th><th class="px-4 py-2 text-left">Email</th><th class="px-4 py-2 text-left">Role</th><th class="px-4 py-2 text-left">Status</th><th class="px-4 py-2 text-left">Last Login</th></tr>
+              </thead>
+              <tbody id="users-table" class="divide-y divide-[#282828] text-gray-300">
+                <tr><td colspan="5" class="px-4 py-4 text-center text-gray-600 text-xs">Click Refresh to load users (requires DB)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bg-[#181818] rounded-xl border border-[#282828] overflow-hidden">
+          <div class="flex justify-between items-center p-4 border-b border-[#282828]">
+            <h3 class="font-bold text-sm">Audit Log</h3>
+            <button onclick="loadAudit()" class="text-xs text-gray-400 hover:text-white border border-[#282828] hover:border-gray-500 rounded-lg px-3 py-1 transition">
+              <i class="fa-solid fa-arrows-rotate mr-1"></i>Load</button>
+          </div>
+          <div id="audit-log" class="p-4 text-xs text-gray-600 text-center">Click Load to fetch audit records</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       STICKY BOTTOM PLAYER BAR
+  ════════════════════════════════════════ -->
+  <footer class="fixed bottom-0 left-0 right-0 bg-[#181818] border-t border-[#282828]
+                 p-4 flex flex-col sm:flex-row justify-between items-center z-20 shadow-xl"
+          aria-label="Playback Controls">
+
+    <!-- Track info -->
+    <div class="flex items-center space-x-4 w-full sm:w-1/4 mb-4 sm:mb-0">
+      <div id="player-artwork-box"
+           class="w-14 h-14 bg-gradient-to-br from-[#282828] to-black rounded-md flex
+                  items-center justify-center border border-white/5 shadow-inner flex-shrink-0">
+        <i class="fa-solid fa-music text-gray-600 text-xl"></i>
+      </div>
+      <div class="min-w-0">
+        <h4 id="current-player-title"
+            class="text-sm font-semibold text-white truncate">No Track Selected</h4>
+        <p id="current-player-artist"
+           class="text-xs text-gray-400 truncate">Select a track to begin streaming</p>
+      </div>
+    </div>
+
+    <!-- Controls + progress -->
+    <div class="flex flex-col items-center w-full sm:w-2/4 max-w-xl">
+      <div class="flex items-center space-x-6 mb-2">
+        <button id="shuffle-btn" onclick="toggleShuffle()"
+                class="text-gray-400 hover:text-white transition text-sm"
+                aria-label="Shuffle">
+          <i class="fa-solid fa-shuffle"></i>
+        </button>
+        <button onclick="playPrev()"
+                class="text-gray-400 hover:text-white transition text-base"
+                aria-label="Previous">
+          <i class="fa-solid fa-backward-step"></i>
+        </button>
+        <button id="master-playback-btn"
+                onclick="togglePlaybackState()"
+                class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center
+                       hover:scale-105 transition shadow-md"
+                aria-label="Play / Pause">
+          <i id="master-playback-icon" class="fa-solid fa-play text-sm ml-0.5"></i>
+        </button>
+        <button onclick="playNext()"
+                class="text-gray-400 hover:text-white transition text-base"
+                aria-label="Next">
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
+        <button id="repeat-btn" onclick="toggleRepeat()"
+                class="text-gray-400 hover:text-white transition text-sm"
+                aria-label="Repeat">
+          <i class="fa-solid fa-repeat"></i>
+        </button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="flex items-center space-x-3 w-full text-xs text-gray-400">
+        <span id="playback-current-time">0:00</span>
+        <div class="flex-1 h-1 bg-[#282828] rounded-full relative group cursor-pointer"
+             role="progressbar" aria-label="Track progress">
+          <div id="playback-progress-fill-node"
+               class="w-0 h-full bg-white group-hover:bg-[#1DB954] rounded-full">
+          </div>
+        </div>
+        <span id="playback-total-duration">0:00</span>
+      </div>
+    </div>
+
+    <!-- Volume + extras -->
+    <div class="hidden sm:flex items-center justify-end space-x-4 w-full sm:w-1/4 text-gray-400 text-sm">
+      <button onclick="openLyricsModal()" id="lyrics-btn"
+              class="hover:text-white transition" aria-label="Lyrics" title="Lyrics">
+        <i class="fa-solid fa-microphone-lines"></i>
+      </button>
+      <button onclick="toggleQueue()" id="queue-btn"
+              class="hover:text-white transition" aria-label="Queue" title="Up Next Queue">
+        <i class="fa-solid fa-list-ul"></i>
+      </button>
+      <div class="flex items-center space-x-2">
+        <button onclick="toggleMute()" id="vol-icon-btn" aria-label="Mute/Unmute">
+          <i id="vol-icon" class="fa-solid fa-volume-high hover:text-white transition"></i>
+        </button>
+        <input id="vol-slider" type="range" min="0" max="100" value="75"
+               oninput="setVolume(this.value)" aria-label="Volume" />
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════
+       LYRICS MODAL
+  ════════════════════════════════════════ -->
+  <div id="lyrics-modal" class="modal-backdrop" onclick="closeLyricsModal(event)">
+    <div class="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg mx-4
+                max-h-[80vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-5 border-b border-[#282828]">
+        <div>
+          <h3 id="lyrics-title" class="font-bold text-white text-base">Lyrics</h3>
+          <p id="lyrics-artist" class="text-xs text-gray-400 mt-0.5"></p>
+        </div>
+        <button onclick="closeLyricsModal()" class="text-gray-500 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto flex-1">
+        <div id="lyrics-body" class="text-gray-300 text-sm leading-8 text-center">
+          <i class="fa-solid fa-spinner fa-spin text-2xl text-gray-600"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       QUEUE PANEL (slides in from right)
+  ════════════════════════════════════════ -->
+  <div id="queue-panel"
+       class="fixed right-0 top-0 bottom-[73px] w-72 bg-[#121212] border-l border-[#282828]
+              z-30 transform translate-x-full transition-transform duration-300 flex flex-col"
+       aria-label="Up Next Queue">
+    <div class="flex items-center justify-between p-4 border-b border-[#282828]">
+      <h3 class="font-bold text-white text-sm">Up Next</h3>
+      <button onclick="toggleQueue()" class="text-gray-500 hover:text-white transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="queue-list" class="flex-1 overflow-y-auto p-3 space-y-1"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       ARCHITECTURE INFO MODAL
+  ════════════════════════════════════════ -->
+  <div id="arch-modal" class="modal-backdrop" onclick="closeArchModal(event)">
+    <div class="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg mx-4
+                shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between p-5 border-b border-[#282828]">
+        <h3 class="font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-diagram-project text-[#FF9900]"></i>
+          Live Architecture
+        </h3>
+        <button onclick="closeArchModal()" class="text-gray-500 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 text-sm">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-[#282828] rounded-xl p-3 space-y-1">
+            <p class="text-xs text-gray-500 uppercase tracking-widest">Compute</p>
+            <p class="text-white font-semibold">AWS EC2</p>
+            <p class="text-gray-400 text-xs">Ubuntu · ap-south-1</p>
+          </div>
+          <div class="bg-[#282828] rounded-xl p-3 space-y-1">
+            <p class="text-xs text-gray-500 uppercase tracking-widest">Storage</p>
+            <p class="text-white font-semibold">Amazon S3</p>
+            <p class="text-gray-400 text-xs font-mono">musicnation-tracks</p>
+          </div>
+          <div class="bg-[#282828] rounded-xl p-3 space-y-1">
+            <p class="text-xs text-gray-500 uppercase tracking-widest">Backend</p>
+            <p class="text-white font-semibold">Flask 3.1</p>
+            <p class="text-gray-400 text-xs">Python 3.14 · Port 5001</p>
+          </div>
+          <div class="bg-[#282828] rounded-xl p-3 space-y-1">
+            <p class="text-xs text-gray-500 uppercase tracking-widest">Auth</p>
+            <p class="text-white font-semibold">IAM + Pre-signed URLs</p>
+            <p class="text-gray-400 text-xs">1hr expiry · No public access</p>
+          </div>
+        </div>
+        <div class="bg-[#282828] rounded-xl p-3 space-y-2 text-xs text-gray-400">
+          <p class="text-white font-semibold text-sm">How audio streaming works</p>
+          <p>1. You click play on a track</p>
+          <p>2. Frontend calls <span class="font-mono text-[#1DB954]">/stream/&lt;id&gt;</span> on the Flask backend</p>
+          <p>3. Flask generates a <span class="text-white">pre-signed S3 URL</span> (valid 1 hour)</p>
+          <p>4. Your browser streams the MP3 directly from S3 — no data passes through Flask</p>
+          <p>5. Files never become public — each URL is unique and time-limited</p>
+        </div>
+        <div id="arch-live-status" class="text-xs text-gray-500 text-right">Checking live status…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT — Real HTML5 Audio + S3 Streaming
+  ════════════════════════════════════════ -->
+  <script>
+    // ── Config ───────────────────────────────────────────────────────────────
+    const API_BASE = 'http://localhost:5001';
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let currentTrack  = null;   // full track object from /catalog
+    let catalogTracks = [];     // all tracks loaded from API
+    let recentPlays   = [];
+    let progressTimer = null;
+
+    // ── Single shared HTML5 Audio element ────────────────────────────────────
+    const audio = new Audio();
+    audio.preload = 'none';
+
+    // ── Format seconds → m:ss ────────────────────────────────────────────────
+    function fmtTime(sec) {
+      if (!isFinite(sec) || sec < 0) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // ── XSS-safe HTML escaping ────────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Update progress bar & time display in real time ──────────────────────
+    audio.addEventListener('timeupdate', () => {
+      if (!audio.duration) return;
+      const pct = (audio.currentTime / audio.duration) * 100;
+      document.getElementById('playback-progress-fill-node').style.width = pct + '%';
+      document.getElementById('playback-current-time').textContent = fmtTime(audio.currentTime);
+    });
+
+    audio.addEventListener('loadedmetadata', () => {
+      document.getElementById('playback-total-duration').textContent = fmtTime(audio.duration);
+    });
+
+    audio.addEventListener('error', () => {
+      console.error('Audio error:', audio.error);
+      setStatusBanner('⚠️ Playback error — could not load audio from S3', 'red');
+      setPlayIcon(false);
+      setDiscSpin(false);
+    });
+
+    // ── Health check ─────────────────────────────────────────────────────────
+    async function pingHealthCheck() {
+      const label   = document.getElementById('health-label');
+      const statApi = document.getElementById('stat-api');
+      label.textContent = 'Checking…';
+      try {
+        const res  = await fetch(`${API_BASE}/health`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          label.textContent     = '✓ Healthy';
+          statApi.textContent   = 'OK';
+          statApi.className     = 'text-2xl font-bold text-green-400';
+        } else throw new Error();
+      } catch {
+        label.textContent     = '✗ Unreachable';
+        statApi.textContent   = 'ERR';
+        statApi.className     = 'text-2xl font-bold text-red-400';
+      }
+    }
+
+    // ── Load catalog ─────────────────────────────────────────────────────────
+    async function loadCatalogData() {
+      const grid = document.getElementById('catalog-grid-display');
+      grid.innerHTML = ['w-2/3','w-3/4','w-1/2'].map(w => `
+        <div class="bg-[#181818] p-5 rounded-xl border border-[#282828] animate-pulse space-y-4">
+          <div class="h-5 bg-gray-700 rounded ${w}"></div>
+          <div class="h-4 bg-gray-800 rounded w-1/3"></div>
+        </div>`).join('');
+
+      try {
+        const res  = await fetch(`${API_BASE}/catalog`);
+        const data = await res.json();
+
+        if (data.status !== 'success') throw new Error('non-success');
+
+        catalogTracks = data.tracks;
+        document.getElementById('stat-tracks').textContent = data.total_tracks;
+        document.getElementById('stat-api').textContent    = 'OK';
+        document.getElementById('stat-api').className      = 'text-2xl font-bold text-green-400';
+
+        // AWS badge in sidebar
+        if (data.aws_connected) {
+          document.getElementById('health-label').textContent = '✓ AWS Connected';
+        }
+
+        grid.innerHTML = '';
+        data.tracks.forEach((track, idx) => {
+          const playable = track.playable;
+          const card = document.createElement('div');
+          card.id        = `card-${track.id}`;
+          card.className = `bg-[#181818] p-5 rounded-xl border border-[#282828]
+            hover:bg-[#232323] transition group relative flex flex-col justify-between
+            shadow-md hover:shadow-xl transform hover:-translate-y-0.5 duration-200
+            ${!playable ? 'opacity-60' : ''}`;
+
+          card.innerHTML = `
+            <div class="flex items-start justify-between">
+              <div class="space-y-1 min-w-0 pr-2">
+                <span class="text-xs text-gray-600 font-mono">#${String(idx+1).padStart(2,'0')}</span>
+                <h3 class="font-bold text-base text-white group-hover:text-[#1DB954] transition truncate">
+                  ${escHtml(track.title)}
+                </h3>
+                <p class="text-sm text-gray-400 truncate">${escHtml(track.artist)}</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-[#282828] flex items-center justify-center
+                          flex-shrink-0 border border-white/5">
+                <i id="card-icon-${track.id}"
+                   class="fa-solid ${playable ? 'fa-music text-gray-500' : 'fa-lock text-gray-600'} text-sm"></i>
+              </div>
+            </div>
+            <div class="flex justify-between items-center mt-5 pt-4 border-t border-white/5">
+              <span class="text-xs font-mono text-gray-500">
+                <i class="fa-regular fa-clock mr-1"></i>${escHtml(track.duration)}
+              </span>
+              ${playable
+                ? `<button onclick='mountTrackById(${track.id})'
+                     class="w-9 h-9 rounded-full bg-[#1DB954] text-white flex items-center justify-center
+                            opacity-0 group-hover:opacity-100 hover:scale-110 shadow transition-all duration-200"
+                     aria-label="Play ${escHtml(track.title)}">
+                     <i class="fa-solid fa-play text-xs ml-0.5"></i>
+                   </button>`
+                : `<span class="text-xs text-gray-600 italic">${escHtml(track.reason || 'Unavailable')}</span>`
+              }
+            </div>`;
+
+          grid.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error('Catalog fetch failed:', err);
+        grid.innerHTML = `
+          <div class="col-span-full bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center space-y-3">
+            <i class="fa-solid fa-triangle-exclamation text-red-400 text-3xl"></i>
+            <h4 class="font-bold text-red-400">Backend Unreachable</h4>
+            <p class="text-sm text-gray-400 max-w-md mx-auto">
+              Could not reach <code class="text-red-300">${API_BASE}</code>.
+              Make sure Flask is running: <code class="text-gray-300">python3 app/app.py</code>
+            </p>
+            <button onclick="loadCatalogData()"
+                    class="mt-2 px-4 py-2 text-xs font-bold uppercase tracking-widest
+                           border border-red-500/30 hover:border-red-400 text-red-400 rounded-full transition">
+              <i class="fa-solid fa-arrows-rotate mr-1"></i> Retry
+            </button>
+          </div>`;
+      }
+    }
+
+    // ── Mount track by ID (called from card button) ───────────────────────────
+    function mountTrackById(id) {
+      const track = catalogTracks.find(t => t.id === id);
+      if (track) mountTrack(track);
+    }
+
+    // ── Mount a track — load presigned URL into Audio element & play ──────────
+    async function mountTrack(track) {
+      if (!track.playable) return;
+
+      // Stop whatever is playing
+      audio.pause();
+      audio.src = '';
+      setPlayIcon(false);
+      setDiscSpin(false);
+
+      currentTrack = track;
+
+      // Update player bar info immediately
+      document.getElementById('current-player-title').textContent  = track.title;
+      document.getElementById('current-player-artist').textContent = track.artist;
+      document.getElementById('playback-total-duration').textContent = track.duration;
+      document.getElementById('playback-current-time').textContent  = '0:00';
+      document.getElementById('playback-progress-fill-node').style.width = '0%';
+
+      // Spinning disc artwork
+      const box = document.getElementById('player-artwork-box');
+      box.className = `w-14 h-14 bg-gradient-to-br from-[#1DB954] to-[#168ed1] rounded-md
+                       flex items-center justify-center border border-white/10 shadow-md flex-shrink-0`;
+      box.innerHTML = `<i id="disc-icon" class="fa-solid fa-compact-disc text-white text-xl disc-spin"></i>`;
+
+      // Show loading state on play button
+      setPlayIcon('loading');
+      addRecentPlay(track);
+
+      try {
+        // Fetch a fresh presigned URL from /stream/<id>
+        const res  = await fetch(`${API_BASE}/stream/${track.id}`);
+        const data = await res.json();
+
+        if (!data.stream_url) throw new Error(data.error || 'No stream URL');
+
+        audio.src = data.stream_url;
+        audio.load();
+        await audio.play();
+
+        setPlayIcon(true);
+        setDiscSpin(true);
+
+      } catch (err) {
+        console.error('Stream error:', err);
+        setPlayIcon(false);
+        setDiscSpin(false);
+        setStatusBanner(`⚠️ Could not stream "${track.title}" — ${err.message}`, 'red');
+      }
+    }
+
+    // ── Toggle play / pause on current track ─────────────────────────────────
+    async function togglePlaybackState() {
+      if (!currentTrack) {
+        setStatusBanner('👆 Select a track from the catalog to start playing', 'gray');
+        return;
+      }
+      if (audio.paused) {
+        if (!audio.src) {
+          await mountTrack(currentTrack);
+        } else {
+          await audio.play();
+          setPlayIcon(true);
+          setDiscSpin(true);
+        }
+      } else {
+        audio.pause();
+        setPlayIcon(false);
+        setDiscSpin(false);
+      }
+    }
+
+    // ── Seek on progress bar click ────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      const bar = document.querySelector('[role="progressbar"]');
+      if (bar) {
+        bar.addEventListener('click', (e) => {
+          if (!audio.duration) return;
+          const rect = bar.getBoundingClientRect();
+          const pct  = (e.clientX - rect.left) / rect.width;
+          audio.currentTime = pct * audio.duration;
+        });
+      }
+    });
+
+    // ── Helper: set play/pause icon ───────────────────────────────────────────
+    function setPlayIcon(state) {
+      const icon = document.getElementById('master-playback-icon');
+      if (state === 'loading') {
+        icon.className = 'fa-solid fa-spinner fa-spin text-sm';
+      } else if (state) {
+        icon.className = 'fa-solid fa-pause text-sm';
+      } else {
+        icon.className = 'fa-solid fa-play text-sm ml-0.5';
+      }
+    }
+
+    // ── Helper: spin or stop disc icon ───────────────────────────────────────
+    function setDiscSpin(spinning) {
+      const disc = document.getElementById('disc-icon');
+      if (!disc) return;
+      if (spinning) disc.classList.add('disc-spin');
+      else          disc.classList.remove('disc-spin');
+    }
+
+    // ── Helper: show a brief status banner ───────────────────────────────────
+    function setStatusBanner(msg, color) {
+      let banner = document.getElementById('status-banner');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'status-banner';
+        banner.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full text-sm font-medium shadow-lg transition-all';
+        document.body.appendChild(banner);
+      }
+      banner.textContent = msg;
+      banner.style.background = color === 'red' ? '#ef444422' : '#ffffff11';
+      banner.style.border      = `1px solid ${color === 'red' ? '#ef4444' : '#ffffff33'}`;
+      banner.style.color       = color === 'red' ? '#fca5a5' : '#e5e7eb';
+      banner.style.opacity     = '1';
+      clearTimeout(banner._timer);
+      banner._timer = setTimeout(() => { banner.style.opacity = '0'; }, 4000);
+    }
+
+    // ── Recent plays sidebar ──────────────────────────────────────────────────
+    function addRecentPlay(track) {
+      recentPlays = recentPlays.filter(t => t.id !== track.id);
+      recentPlays.unshift(track);
+      if (recentPlays.length > 5) recentPlays.pop();
+
+      document.getElementById('recent-plays').innerHTML = recentPlays.map(t => `
+        <button onclick="mountTrackById(${t.id})"
+                class="w-full text-left px-3 py-1.5 rounded-md hover:bg-[#282828] transition group">
+          <p class="text-xs font-medium text-gray-300 truncate group-hover:text-white">${escHtml(t.title)}</p>
+          <p class="text-xs text-gray-600 truncate">${escHtml(t.artist)}</p>
+        </button>`).join('');
+    }
+
+    // ── Bootstrap ─────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCatalogData();
+      pingHealthCheck();
+      // set initial volume
+      audio.volume = 0.75;
+      // init volume slider gradient
+      const slider = document.getElementById('vol-slider');
+      if (slider) slider.style.background = 'linear-gradient(to right, #1DB954 75%, #282828 75%)';
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // VIEW NAVIGATION — Home / Search / Library / Analytics / Monitoring / Pricing / Access
+    // ═══════════════════════════════════════════════════════════════════════
+    function showView(name) {
+      const views = ['home','search','library','analytics','monitoring','pricing','access'];
+      views.forEach(v => {
+        document.getElementById(`view-${v}`).classList.toggle('active', v === name);
+        const btn = document.getElementById(`nav-${v}`);
+        if (btn) {
+          btn.classList.toggle('nav-btn-active', v === name);
+          btn.classList.toggle('text-white', v === name);
+          btn.classList.toggle('text-gray-400', v !== name);
+        }
+      });
+      if (name === 'search')     setTimeout(() => document.getElementById('search-input').focus(), 50);
+      if (name === 'library')    loadLibrary();
+      if (name === 'analytics')  loadAnalytics();
+      if (name === 'monitoring') loadMetrics();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SEARCH
+    // ═══════════════════════════════════════════════════════════════════════
+    function runSearch(query) {
+      const q = query.trim().toLowerCase();
+      const out = document.getElementById('search-results');
+      if (!q) {
+        out.innerHTML = '<p class="text-gray-500 text-sm col-span-full px-1">Start typing to search…</p>';
+        return;
+      }
+      const hits = catalogTracks.filter(t =>
+        t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
+      );
+      if (!hits.length) {
+        out.innerHTML = `<p class="text-gray-500 text-sm col-span-full px-1">No results for "<em>${escHtml(query)}</em>"</p>`;
+        return;
+      }
+      out.innerHTML = '';
+      hits.forEach((track, idx) => {
+        const card = document.createElement('div');
+        card.className = `bg-[#181818] p-5 rounded-xl border border-[#282828]
+          hover:bg-[#232323] transition group flex flex-col justify-between
+          shadow-md cursor-pointer`;
+        card.onclick = () => { if (track.playable) mountTrack(track); };
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div class="space-y-1 min-w-0 pr-2">
+              <h3 class="font-bold text-base text-white group-hover:text-[#1DB954] transition truncate">
+                ${escHtml(track.title)}
+              </h3>
+              <p class="text-sm text-gray-400 truncate">${escHtml(track.artist)}</p>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-[#282828] flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid ${track.playable ? 'fa-play text-[#1DB954]' : 'fa-lock text-gray-600'} text-sm"></i>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-white/5 text-xs font-mono text-gray-500">
+            <i class="fa-regular fa-clock mr-1"></i>${escHtml(track.duration)}
+          </div>`;
+        out.appendChild(card);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CLOUD LIBRARY — calls /buckets to list S3 files
+    // ═══════════════════════════════════════════════════════════════════════
+    async function loadLibrary() {
+      const list = document.getElementById('library-list');
+      list.innerHTML = `<div class="flex items-center gap-3 text-gray-500 text-sm">
+        <i class="fa-solid fa-spinner fa-spin"></i> Fetching from S3…</div>`;
+      try {
+        const res  = await fetch(`${API_BASE}/buckets`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        // Show each bucket and match to catalog tracks
+        list.innerHTML = '';
+
+        // Header: bucket names
+        const bucketBox = document.createElement('div');
+        bucketBox.className = 'bg-[#282828] rounded-xl p-4 mb-4 space-y-2';
+        bucketBox.innerHTML = `
+          <p class="text-xs text-gray-500 uppercase tracking-widest font-semibold">Your S3 Buckets</p>
+          ${data.buckets.map(b => `
+            <div class="flex items-center gap-2 text-sm">
+              <i class="fa-solid fa-bucket text-[#FF9900] text-xs"></i>
+              <span class="font-mono text-gray-300">${escHtml(b)}</span>
+              ${b === 'musicnation-tracks'
+                ? '<span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full ml-auto">Active</span>'
+                : ''}
+            </div>`).join('')}`;
+        list.appendChild(bucketBox);
+
+        // Track files from catalog
+        const header = document.createElement('p');
+        header.className = 'text-xs text-gray-500 uppercase tracking-widest font-semibold mb-3 px-1';
+        header.textContent = 'Tracks in musicnation-tracks';
+        list.appendChild(header);
+
+        catalogTracks.forEach(track => {
+          const row = document.createElement('div');
+          row.className = `flex items-center gap-3 bg-[#181818] border border-[#282828]
+            rounded-xl p-3 hover:bg-[#232323] transition group cursor-pointer`;
+          row.onclick = () => { if (track.playable) { mountTrack(track); showView('home'); } };
+          row.innerHTML = `
+            <div class="w-9 h-9 rounded-lg bg-[#282828] flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-file-audio text-[#1DB954] text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-white truncate group-hover:text-[#1DB954] transition">
+                ${escHtml(track.title)}
+              </p>
+              <p class="text-xs text-gray-500">${escHtml(track.artist)} · ${escHtml(track.duration)}</p>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <span class="text-xs ${track.playable ? 'text-green-400' : 'text-red-400'}">
+                <i class="fa-solid ${track.playable ? 'fa-circle-check' : 'fa-circle-xmark'}"></i>
+                ${track.playable ? 'In S3' : 'Missing'}
+              </span>
+            </div>`;
+          list.appendChild(row);
+        });
+
+      } catch (err) {
+        list.innerHTML = `
+          <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-5 text-center space-y-2">
+            <i class="fa-solid fa-triangle-exclamation text-red-400 text-2xl"></i>
+            <p class="text-red-400 font-semibold text-sm">Could not load S3 library</p>
+            <p class="text-gray-500 text-xs">${escHtml(err.message)}</p>
+          </div>`;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PLAY ALL
+    // ═══════════════════════════════════════════════════════════════════════
+    function mountAllTracks() {
+      const playable = catalogTracks.filter(t => t.playable);
+      if (playable.length) mountTrack(playable[0]);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SHUFFLE / REPEAT / PREV / NEXT
+    // ═══════════════════════════════════════════════════════════════════════
+    let shuffleOn = false;
+    let repeatOn  = false;
+
+    function toggleShuffle() {
+      shuffleOn = !shuffleOn;
+      document.getElementById('shuffle-btn').classList.toggle('text-[#1DB954]', shuffleOn);
+      document.getElementById('shuffle-btn').classList.toggle('text-gray-400', !shuffleOn);
+    }
+
+    function toggleRepeat() {
+      repeatOn = !repeatOn;
+      document.getElementById('repeat-btn').classList.toggle('text-[#1DB954]', repeatOn);
+      document.getElementById('repeat-btn').classList.toggle('text-gray-400', !repeatOn);
+      audio.loop = repeatOn;
+    }
+
+    function playNext() {
+      const playable = catalogTracks.filter(t => t.playable);
+      if (!playable.length) return;
+      if (shuffleOn) {
+        const next = playable[Math.floor(Math.random() * playable.length)];
+        mountTrack(next); return;
+      }
+      const idx = currentTrack ? playable.findIndex(t => t.id === currentTrack.id) : -1;
+      const next = playable[(idx + 1) % playable.length];
+      mountTrack(next);
+    }
+
+    function playPrev() {
+      const playable = catalogTracks.filter(t => t.playable);
+      if (!playable.length) return;
+      // If more than 3 seconds in, restart current track
+      if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+      const idx = currentTrack ? playable.findIndex(t => t.id === currentTrack.id) : 0;
+      const prev = playable[(idx - 1 + playable.length) % playable.length];
+      mountTrack(prev);
+    }
+
+    // Override ended to respect shuffle/repeat
+    audio.addEventListener('ended', () => {
+      if (repeatOn) return; // audio.loop handles it
+      playNext();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // VOLUME
+    // ═══════════════════════════════════════════════════════════════════════
+    let lastVol = 0.75;
+
+    function setVolume(val) {
+      const v = parseInt(val) / 100;
+      audio.volume = v;
+      lastVol = v || lastVol;
+      const icon = document.getElementById('vol-icon');
+      if (v === 0)      icon.className = 'fa-solid fa-volume-xmark hover:text-white transition';
+      else if (v < 0.4) icon.className = 'fa-solid fa-volume-low hover:text-white transition';
+      else              icon.className = 'fa-solid fa-volume-high hover:text-white transition';
+      // Update slider background
+      const slider = document.getElementById('vol-slider');
+      slider.style.background = `linear-gradient(to right, #1DB954 ${val}%, #282828 ${val}%)`;
+    }
+
+    function toggleMute() {
+      const slider = document.getElementById('vol-slider');
+      if (audio.volume > 0) {
+        lastVol = audio.volume;
+        audio.volume = 0;
+        slider.value = 0;
+        setVolume(0);
+      } else {
+        audio.volume = lastVol;
+        slider.value = Math.round(lastVol * 100);
+        setVolume(Math.round(lastVol * 100));
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // QUEUE PANEL
+    // ═══════════════════════════════════════════════════════════════════════
+    let queueOpen = false;
+
+    function toggleQueue() {
+      queueOpen = !queueOpen;
+      const panel = document.getElementById('queue-panel');
+      panel.style.transform = queueOpen ? 'translateX(0)' : 'translateX(100%)';
+      document.getElementById('queue-btn').classList.toggle('text-[#1DB954]', queueOpen);
+      if (queueOpen) renderQueue();
+    }
+
+    function renderQueue() {
+      const list = document.getElementById('queue-list');
+      const playable = catalogTracks.filter(t => t.playable);
+      if (!playable.length) {
+        list.innerHTML = '<p class="text-gray-600 text-xs px-2 py-3">No tracks loaded yet</p>';
+        return;
+      }
+      list.innerHTML = playable.map((t, i) => `
+        <button onclick="mountTrack(catalogTracks.find(x=>x.id===${t.id}))"
+                class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#282828] transition text-left
+                       ${currentTrack && currentTrack.id === t.id ? 'queue-item-active border border-transparent' : ''}">
+          <span class="text-xs text-gray-600 font-mono w-5 text-center">${i+1}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-white truncate
+                      ${currentTrack && currentTrack.id === t.id ? 'text-[#1DB954]' : ''}">
+              ${escHtml(t.title)}
+            </p>
+            <p class="text-xs text-gray-600 truncate">${escHtml(t.artist)}</p>
+          </div>
+          ${currentTrack && currentTrack.id === t.id
+            ? '<i class="fa-solid fa-volume-high text-[#1DB954] text-xs flex-shrink-0"></i>'
+            : `<span class="text-xs text-gray-600 font-mono flex-shrink-0">${escHtml(t.duration)}</span>`}
+        </button>`).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // LYRICS MODAL
+    // ═══════════════════════════════════════════════════════════════════════
+    async function openLyricsModal() {
+      const modal = document.getElementById('lyrics-modal');
+      modal.classList.add('open');
+
+      if (!currentTrack) {
+        document.getElementById('lyrics-title').textContent  = 'Lyrics';
+        document.getElementById('lyrics-artist').textContent = '';
+        document.getElementById('lyrics-body').innerHTML =
+          '<p class="text-gray-500 text-sm">Play a track first to see its lyrics.</p>';
+        return;
+      }
+
+      document.getElementById('lyrics-title').textContent  = currentTrack.title;
+      document.getElementById('lyrics-artist').textContent = currentTrack.artist;
+      document.getElementById('lyrics-body').innerHTML =
+        '<i class="fa-solid fa-spinner fa-spin text-2xl text-gray-600"></i>';
+
+      try {
+        // Lyrics.ovh free API — no key needed
+        const artist = encodeURIComponent(currentTrack.artist);
+        const title  = encodeURIComponent(currentTrack.title);
+        const res    = await fetch(`https://api.lyrics.ovh/v1/${artist}/${title}`);
+        const data   = await res.json();
+
+        if (data.lyrics) {
+          document.getElementById('lyrics-body').textContent = data.lyrics.trim();
+        } else {
+          throw new Error('no lyrics');
+        }
+      } catch {
+        document.getElementById('lyrics-body').innerHTML = `
+          <div class="space-y-3 text-center">
+            <i class="fa-solid fa-face-sad-tear text-3xl text-gray-600"></i>
+            <p class="text-gray-500 text-sm">Lyrics not found for this track.</p>
+            <p class="text-gray-600 text-xs">lyrics.ovh may not have this song.</p>
+          </div>`;
+      }
+    }
+
+    function closeLyricsModal(e) {
+      if (!e || e.target === document.getElementById('lyrics-modal')) {
+        document.getElementById('lyrics-modal').classList.remove('open');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ARCHITECTURE MODAL
+    // ═══════════════════════════════════════════════════════════════════════
+    async function openArchModal() {
+      document.getElementById('arch-modal').classList.add('open');
+      try {
+        const res  = await fetch(`${API_BASE}/health`);
+        const data = await res.json();
+        document.getElementById('arch-live-status').innerHTML =
+          `<i class="fa-solid fa-circle text-green-400 text-xs mr-1"></i>
+           Backend live at <span class="font-mono text-gray-300">${API_BASE}</span>`;
+      } catch {
+        document.getElementById('arch-live-status').innerHTML =
+          '<i class="fa-solid fa-circle text-red-400 text-xs mr-1"></i>Backend unreachable';
+      }
+    }
+
+    function closeArchModal(e) {
+      if (!e || e.target === document.getElementById('arch-modal')) {
+        document.getElementById('arch-modal').classList.remove('open');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ANALYTICS
+    // ═══════════════════════════════════════════════════════════════════════
+    async function loadAnalytics() {
+      try {
+        const res  = await fetch(`${API_BASE}/analytics`);
+        const data = await res.json();
+        if (data.status !== 'success') throw new Error();
+
+        document.getElementById('an-total').textContent   = data.total_plays;
+        document.getElementById('an-top').textContent     = data.top_tracks[0] ? data.top_tracks[0].title : '—';
+        document.getElementById('an-regions').textContent = data.by_region.length;
+        document.getElementById('an-tracks').textContent  = catalogTracks.length || 6;
+
+        // Top tracks table
+        const tt = document.getElementById('an-top-table');
+        if (data.top_tracks.length) {
+          const max = data.top_tracks[0].plays;
+          tt.innerHTML = data.top_tracks.map((t,i) => `
+            <div class="flex items-center gap-4 px-5 py-3 hover:bg-[#232323] transition">
+              <span class="text-xs text-gray-600 font-mono w-4">${i+1}</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-white truncate">${escHtml(t.title)}</p>
+                <p class="text-xs text-gray-500 truncate">${escHtml(t.artist)}</p>
+              </div>
+              <div class="flex items-center gap-3 w-32">
+                <div class="flex-1 h-1.5 bg-[#282828] rounded-full">
+                  <div class="h-full bg-[#1DB954] rounded-full" style="width:${Math.round(t.plays/max*100)}%"></div>
+                </div>
+                <span class="text-xs text-gray-400 font-mono w-6 text-right">${t.plays}</span>
+              </div>
+            </div>`).join('');
+        } else {
+          tt.innerHTML = '<p class="text-gray-600 text-sm p-5 text-center">No play data yet — play some tracks!</p>';
+        }
+
+        // Recent activity
+        const ra = document.getElementById('an-recent');
+        if (data.recent.length) {
+          ra.innerHTML = data.recent.map(r => `
+            <div class="flex items-center justify-between px-5 py-2.5 hover:bg-[#232323] transition">
+              <div><p class="text-sm text-white">${escHtml(r.title)}</p>
+                   <p class="text-xs text-gray-500">${escHtml(r.artist)}</p></div>
+              <div class="text-right">
+                <p class="text-xs text-gray-500 font-mono">${escHtml(r.region)}</p>
+                <p class="text-xs text-gray-600">${new Date(r.played_at).toLocaleString()}</p>
+              </div>
+            </div>`).join('');
+        } else {
+          ra.innerHTML = '<p class="text-gray-600 text-sm p-5 text-center">No recent activity</p>';
+        }
+      } catch {
+        document.getElementById('an-top-table').innerHTML =
+          '<p class="text-gray-600 text-sm p-5 text-center">Analytics unavailable — database not connected</p>';
+        document.getElementById('an-total').textContent = 'N/A';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // MONITORING
+    // ═══════════════════════════════════════════════════════════════════════
+    async function loadMetrics() {
+      try {
+        const res  = await fetch(`${API_BASE}/metrics`);
+        const data = await res.json();
+        if (data.status !== 'success') throw new Error();
+
+        document.getElementById('mon-cpu').textContent  = data.cpu_pct + '%';
+        document.getElementById('mon-mem').textContent  = data.mem_pct + '%';
+        document.getElementById('mon-disk').textContent = data.disk_pct + '%';
+        document.getElementById('mon-cpu-bar').style.width  = data.cpu_pct  + '%';
+        document.getElementById('mon-mem-bar').style.width  = data.mem_pct  + '%';
+        document.getElementById('mon-disk-bar').style.width = data.disk_pct + '%';
+
+        // Color bars by threshold
+        document.getElementById('mon-cpu-bar').className  = `h-full rounded-full transition-all duration-700 ${data.cpu_pct  > 80 ? 'bg-red-500' : data.cpu_pct  > 60 ? 'bg-yellow-500' : 'bg-blue-500'}`;
+        document.getElementById('mon-mem-bar').className  = `h-full rounded-full transition-all duration-700 ${data.mem_pct  > 80 ? 'bg-red-500' : data.mem_pct  > 60 ? 'bg-yellow-500' : 'bg-purple-500'}`;
+        document.getElementById('mon-disk-bar').className = `h-full rounded-full transition-all duration-700 ${data.disk_pct > 80 ? 'bg-red-500' : data.disk_pct > 60 ? 'bg-yellow-500' : 'bg-yellow-500'}`;
+
+        document.getElementById('mon-api').textContent = '● Online';
+        document.getElementById('mon-api').className   = 'text-xs font-bold text-green-400';
+        document.getElementById('mon-db').textContent  = data.db === 'connected' ? '● Online' : '● Offline';
+        document.getElementById('mon-db').className    = `text-xs font-bold ${data.db === 'connected' ? 'text-green-400' : 'text-red-400'}`;
+        document.getElementById('mon-s3').textContent  = catalogTracks.some(t => t.playable) ? '● Online' : '● Check creds';
+        document.getElementById('mon-s3').className    = `text-xs font-bold ${catalogTracks.some(t => t.playable) ? 'text-green-400' : 'text-yellow-400'}`;
+
+        // History table
+        const tbody = document.getElementById('mon-history');
+        if (data.history && data.history.length) {
+          tbody.innerHTML = data.history.map(h => `
+            <tr class="hover:bg-[#232323]">
+              <td class="px-4 py-2">${new Date(h.recorded_at).toLocaleTimeString()}</td>
+              <td class="px-4 py-2 text-right ${parseFloat(h.cpu_pct) > 80 ? 'text-red-400' : 'text-white'}">${h.cpu_pct}%</td>
+              <td class="px-4 py-2 text-right ${parseFloat(h.mem_pct) > 80 ? 'text-red-400' : 'text-white'}">${h.mem_pct}%</td>
+              <td class="px-4 py-2 text-right">${h.disk_pct}%</td>
+            </tr>`).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-3 text-center text-gray-600">No history yet — DB not connected</td></tr>';
+        }
+      } catch {
+        document.getElementById('mon-cpu').textContent  = 'ERR';
+        document.getElementById('mon-mem').textContent  = 'ERR';
+        document.getElementById('mon-disk').textContent = 'ERR';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // USERS / AUDIT
+    // ═══════════════════════════════════════════════════════════════════════
+    async function loadUsers() {
+      const tbody = document.getElementById('users-table');
+      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center"><i class="fa-solid fa-spinner fa-spin text-gray-600"></i></td></tr>';
+      try {
+        const res  = await fetch(`${API_BASE}/users`);
+        const data = await res.json();
+        if (data.status !== 'success') throw new Error(data.error);
+        const roleColors = { admin: 'text-red-400', manager: 'text-blue-400', staff: 'text-green-400' };
+        tbody.innerHTML = data.users.map(u => `
+          <tr class="hover:bg-[#232323]">
+            <td class="px-4 py-3 font-semibold text-white">${escHtml(u.username)}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs">${escHtml(u.email)}</td>
+            <td class="px-4 py-3"><span class="text-xs font-bold ${roleColors[u.role] || 'text-gray-400'}">${escHtml(u.role.toUpperCase())}</span></td>
+            <td class="px-4 py-3"><span class="text-xs ${u.is_active ? 'text-green-400' : 'text-red-400'}">${u.is_active ? '● Active' : '● Inactive'}</span></td>
+            <td class="px-4 py-3 text-gray-600 text-xs">${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</td>
+          </tr>`).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-red-400 text-xs">${escHtml(err.message || 'Database not connected')}</td></tr>`;
+      }
+    }
+
+    async function loadAudit() {
+      const box = document.getElementById('audit-log');
+      box.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-gray-600"></i>';
+      try {
+        const res  = await fetch(`${API_BASE}/audit`);
+        const data = await res.json();
+        if (data.status !== 'success') throw new Error(data.error);
+        if (!data.logs.length) { box.innerHTML = '<p class="text-gray-600 text-xs">No audit records yet</p>'; return; }
+        box.innerHTML = `
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-gray-400">
+              <thead class="bg-[#282828] text-gray-500 uppercase tracking-widest">
+                <tr><th class="px-4 py-2 text-left">Time</th><th class="px-4 py-2 text-left">User</th><th class="px-4 py-2 text-left">Action</th><th class="px-4 py-2 text-left">IP</th></tr>
+              </thead>
+              <tbody class="divide-y divide-[#282828]">
+                ${data.logs.map(l => `
+                  <tr class="hover:bg-[#232323]">
+                    <td class="px-4 py-2 font-mono">${new Date(l.logged_at).toLocaleString()}</td>
+                    <td class="px-4 py-2 text-white">${escHtml(l.username || 'system')}</td>
+                    <td class="px-4 py-2 text-[#1DB954]">${escHtml(l.action)}</td>
+                    <td class="px-4 py-2 font-mono">${escHtml(l.ip_address || '—')}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        box.innerHTML = `<p class="text-red-400 text-xs">${escHtml(err.message || 'Database not connected')}</p>`;
+      }
+    }
+  </script>
+
+</body>
+</html>

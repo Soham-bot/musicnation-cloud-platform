@@ -1,467 +1,349 @@
-# 🎵 MusicNation Digital Music Cloud Architecture
+# 🎵 MusicNation Digital Music Cloud Platform
 
-[![AWS](https://img.shields.io/badge/AWS-100000?style=for-the-badge&logo=amazon-aws&logoColor=white&color=FF9900)](https://aws.amazon.com/)
-[![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://ubuntu.com/)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://nginx.org/)
-
-A production-ready, highly available, and fully containerized cloud platform engineered for **MusicNation Digital Music Cloud**. This enterprise-grade architecture demonstrates comprehensive DevOps practices, Linux administration, containerization, and cloud infrastructure management tailored for scalable music streaming operations.
+[![AWS](https://img.shields.io/badge/AWS-Cloud_Infrastructure-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.1-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
+[![Nginx](https://img.shields.io/badge/Nginx-Reverse_Proxy-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://nginx.org)
 
 ---
 
 ## 📋 Project Overview
 
-**Problem Statement:**
-MusicNation required a transformation from disconnected, manual workflows and spreadsheets into a centralized, automated, and monitoring-enabled cloud platform capable of supporting rapid regional expansion with zero service interruption.
+**MusicNation Digital Music Cloud** is a production-grade, fully functional music streaming and cloud management platform built as an end-to-end AWS case study for B.Tech CSE Semester IV.
 
-**Solution Delivered:**
-A multi-tier, containerized infrastructure with complete automation, database-backed operations, role-based access control, real-time monitoring, and comprehensive disaster recovery capabilities.
+The platform solves a real-world enterprise problem: MusicNation was operating on disconnected systems, manual workflows, and isolated reporting environments. This solution delivers a **centralized cloud platform** with:
+
+- 🎵 **Real audio streaming** from Amazon S3 via IAM-secured pre-signed URLs
+- 🗄️ **MySQL database** with full operational schema — users, tracks, play events, metrics, audit logs
+- 📊 **Live dashboards** — Analytics, Monitoring, Pricing, RBAC, Workflow, Executive Reports
+- 🐳 **Docker containerization** — 3-container orchestration with docker-compose
+- 🔐 **Role-based access control** — Admin / Manager / Staff tiers
+- 🤖 **Automated scripts** — backup, deployment, monitoring, cron jobs
+- 💰 **Complete AWS pricing strategy** with multi-region cost breakdown
 
 ---
 
-## 🗺️ System Architecture Diagram
+## 🏗️ Architecture Overview
 
-```mermaid
-graph TD
-    User([🌍 Global Users]) -->|HTTP/HTTPS| CF[⚡ Nginx Reverse Proxy]
-    CF -->|Port 5000| Flask[🐍 Flask API Gateway]
-    
-    Flask -->|Read/Write| MySQL[(🗄️ MySQL Database)]
-    Flask -->|Cache Layer| Redis[(⚡ Redis Cache)]
-    Flask -->|Object Store| S3[(📦 AWS S3 Storage)]
-    
-    SubnetPriv["🔒 Private Subnets"]
-    MySQL -.-> SubnetPriv
-    Redis -.-> SubnetPriv
-    
-    Automation[⚙️ Linux Automation] -->|Cron Jobs| Monitor["📊 System Monitoring"]
-    Automation -->|Git Pipeline| Deploy["🚀 Automated Deployment"]
-    Automation -->|Scheduled Backup| Backup["☁️ S3 Cloud Backup"]
-    
-    Docker["🐳 Docker Container Orchestration"] -->|3 Containers| Services["Flask + MySQL + Redis"]
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MUSICNATION CLOUD PLATFORM                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   Browser (index.html)                                      │
+│        │                                                    │
+│        ▼                                                    │
+│   ┌─────────────┐     ┌──────────────────────────────┐     │
+│   │    Nginx    │────▶│      Flask API (Port 5001)   │     │
+│   │  Port 80   │     │  /catalog  /stream  /metrics │     │
+│   └─────────────┘     │  /analytics  /users  /tasks │     │
+│                       └──────────┬───────────────────┘     │
+│                                  │                          │
+│              ┌───────────────────┼───────────────┐         │
+│              ▼                   ▼               ▼         │
+│        ┌──────────┐      ┌────────────┐   ┌──────────┐    │
+│        │  MySQL   │      │  Amazon S3 │   │   boto3  │    │
+│        │   DB     │      │  MP3 Files │   │  AWS SDK │    │
+│        └──────────┘      └────────────┘   └──────────┘    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🏗️ Infrastructure Components
+## ☁️ AWS Services Used
 
-### 🌐 Cloud Networking & Security
-- **Virtual Private Cloud (VPC)**: Custom isolated network (10.0.0.0/16) spanning 2 Availability Zones
-- **Subnet Isolation**: Public subnets for Nginx/user access; Private subnets for databases and cache
-- **Security Groups**: Stateful firewall rules enforcing zero-trust architecture
-- **AWS S3 Storage**: Encrypted object storage for media masters, delivery files, and backups
-
-### 🖥️ Linux & System Administration
-- **Nginx Configuration** (`nginx.conf`): Reverse proxy handling incoming web traffic
-- **Systemd Service** (`musicnation-api.service`): Native OS daemon management for Flask application
-- **Automated Monitoring** (`monitor.sh`): Real-time CPU, memory, and disk tracking
-- **Cron Job Setup** (`setup_cron.sh`): Scheduled automation for background tasks
-- **System Logs**: Comprehensive audit trails and diagnostic logging
-
-### 🐳 Containerization & DevOps
-- **Docker**: Custom Dockerfile optimizing Python runtime and dependencies
-- **Docker Compose** (`docker-compose.yml`): 3-container orchestration (Flask API, MySQL, Redis)
-- **Automated Deployment** (`deploy.sh`): Git-based CI/CD pipeline with zero-downtime updates
-- **Container Networking**: Isolated virtual bridge network for inter-service communication
-
-### 🗄️ Database Architecture
-- **MySQL Relational Database**: Structured schema managing operational data
-- **Optimized Tables**:
-  - `play_events`: Real-time listening analytics and user sessions
-  - `system_metrics`: Hardware diagnostics and performance monitoring
-  - `audit_log`: Security audit trail and access validation records
-- **Automated Backups** (`backup.sh`): Scheduled mysqldump → S3 encryption → archival
-- **Recovery Strategy**: Point-in-time recovery with RPO/RTO guarantees
-
-### 👤 Governance & Access Control
-- **Role-Based Access Control (RBAC)**: Admin, Manager, and Staff role separation
-- **User Management** (`/users` endpoint): Identity validation and privilege assignment
-- **Audit Logging** (`/audit` endpoint): Real-time security event tracking
-- **Session Management**: Secure token-based authentication
-
-### 📊 Monitoring & Analytics
-- **Real-Time Dashboard**: Live system metrics via `/metrics` endpoint
-- **Performance Tracking**: CPU utilization, memory consumption, disk usage, network throughput
-- **Analytics Portal**: Data-driven insights into platform operations
-- **Alerting Framework**: Proactive notifications for threshold breaches
-
-### 💰 FinOps & Cost Optimization
-- **Multi-Region Pricing Models**: Cost comparisons for local vs. distributed deployment
-- **Infrastructure Optimization**: Recommendations for compute savings plans and storage lifecycle rules
-- **Backup Cost Analysis**: S3 storage tiering and archival cost projections
-- **TCO Reduction Strategy**: Up to 30% cost savings through intelligent resource allocation
+| Service | Purpose | Status |
+|---|---|---|
+| **EC2 t3.micro** | Hosts Flask API backend on Ubuntu | ✅ Live |
+| **Amazon S3** | Stores MP3 audio files (33.8MB, 5 tracks) | ✅ Live |
+| **IAM Role** | `musicnation-ec2-role` — credential-less EC2→S3 auth | ✅ Live |
+| **Amazon RDS MySQL** | Production database in private subnet | ✅ Provisioned |
+| **Amazon VPC** | Isolated network with public/private subnets | ✅ Live |
+| **Security Groups** | Firewall rules — DB blocked from internet | ✅ Live |
+| **Amazon CloudFront** | CDN for global low-latency audio delivery | ✅ Provisioned |
+| **ElastiCache Redis** | Session + catalog query caching | ✅ Provisioned |
+| **Amazon SQS** | Async audio transcoding queue + DLQ | ✅ Provisioned |
+| **AWS CloudWatch** | Metrics, logs, and alerting | ✅ Provisioned |
 
 ---
 
-## 📁 Repository Structure
+## 🗂️ Project Structure
+
+```
 musicnation-cloud-platform/
-
-├── README.md                          # Project documentation (this file)
-
-├── Dockerfile                         # Python runtime container definition
-
-├── docker-compose.yml                 # Multi-container orchestration config
-
-├── nginx.conf                         # Reverse proxy configuration
-
-├── musicnation-api.service            # Systemd service daemon definition
-
-│
-
 ├── app/
-
-│   └── app.py                        # Flask REST API backend (4 endpoints)
-
-│
-
+│   ├── app.py              # Flask backend — all API routes
+│   └── requirements.txt    # Python dependencies
 ├── scripts/
-
-│   ├── setup_cron.sh                # Cron job automation initialization
-
-│   ├── monitor.sh                   # Real-time system monitoring utility
-
-│   ├── deploy.sh                    # Git-based CI/CD deployment pipeline
-
-│   └── backup.sh                    # Automated MySQL → S3 backup script
-
-│
-
-├── database/
-
-│   └── schema.sql                   # MySQL relational schema definition
-
-│
-
+│   ├── backup.sh           # MySQL dump → S3 (runs daily via cron)
+│   ├── deploy.sh           # Git pull → pip install → systemctl restart
+│   ├── monitor.sh          # CPU/memory/disk health check script
+│   ├── setup_cron.sh       # Installs all cron jobs on the server
+│   ├── scp_deploy.sh       # SCP file transfer + remote SSH deployment
+│   ├── musicnation-api.service  # systemd service file for Flask
+│   └── db/
+│       └── schema.sql      # Full MySQL schema + seed data
+├── nginx/
+│   └── nginx.conf          # Nginx reverse proxy + rate limiting config
 ├── docs/
-
-│   ├── architecture.md              # Detailed architectural rationale
-
-│   ├── api-reference.md             # API endpoint documentation
-
-│   └── deployment-guide.md          # Step-by-step deployment walkthrough
-
-│
-
-└── screenshots/
-
-├── 01-vpc.png                   # VPC Resource Map
-
-├── 02-s3.png                    # S3 Buckets Configuration
-
-├── 03-rds.png                   # Database Status
-
-├── 04-ec2.png                   # EC2 Instance Details
-
-├── 05-cloudfront.png            # CDN Distribution
-
-├── 06-sqs.png                   # Message Queues
-
-├── 07-elasticache.png           # Redis Cache Status
-
-├── 08-iam.png                   # IAM Role Attachment
-
-├── 09-api-root.png              # API Root Endpoint
-
-├── 10-api-catalog.png           # Catalog Endpoint Response
-
-└── 11-api-buckets.png           # S3 Integration Endpoint
+│   └── linux-setup.md      # Linux admin guide — users, packages, firewall
+├── Dockerfile              # Flask API Docker image
+├── docker-compose.yml      # 3-container orchestration (API + MySQL + Nginx)
+├── index.html              # Full frontend SPA
+└── README.md               # This file
+```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start — Run Locally
 
-### Prerequisites
-- Docker & Docker Compose installed
-- Ubuntu 24.04 LTS or compatible Linux
-- AWS account with S3 access
-- Git installed on local machine
+### Option A: Docker (Recommended — everything included)
 
-### Startup Sequence
-
-**One-Time Setup:**
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/musicnation-cloud-platform.git
+# Clone the repo
+git clone https://github.com/Soham-bot/musicnation-cloud-platform
 cd musicnation-cloud-platform
 
-# Initialize system automation
-chmod +x scripts/*.sh
-./scripts/setup_cron.sh
-```
-
-**Daily Startup:**
-```bash
-# Master startup script handles all initialization
-chmod +x ~/start_musicnation.sh
-./start_musicnation.sh
-```
-
-**Manual Container Management:**
-```bash
-# Start all containers
+# Start all 3 containers (Flask + MySQL + Nginx)
 docker-compose up -d
 
-# Verify container status
-docker-compose ps
+# Verify all containers are healthy
+docker ps
 
-# View application logs
-docker-compose logs -f flask
+# Open the app
+open index.html
+```
 
-# Stop all services
+All services start automatically. MySQL schema is applied on first run.
+
+### Option B: Run Flask directly
+
+```bash
+# Install dependencies
+pip3 install flask flask-cors boto3 PyMySQL bcrypt psutil
+
+# Configure AWS credentials
+aws configure
+# Enter: Access Key, Secret Key, region: us-east-1
+
+# Start backend
+python3 app/app.py
+
+# Open frontend in browser
+open index.html
+```
+
+---
+
+## 🔌 API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/` | API status and version |
+| GET | `/health` | Health check — API + DB status |
+| GET | `/catalog` | All tracks with pre-signed S3 stream URLs |
+| GET | `/stream/<id>` | Fresh pre-signed URL for one track |
+| GET | `/buckets` | List S3 buckets (proves IAM auth) |
+| GET | `/analytics` | Play counts, top tracks, regional data |
+| GET | `/metrics` | Live CPU/memory/disk + history |
+| GET | `/users` | All platform users with roles |
+| GET | `/audit` | Audit log — all platform actions |
+| GET | `/tasks` | Workflow tasks with status |
+| PATCH | `/tasks/<id>/status` | Update task status |
+| GET | `/executive` | Executive KPI summary report |
+| POST | `/login` | Authenticate user, returns role |
+
+---
+
+## 🎵 How Audio Streaming Works
+
+```
+1. User clicks Play on a track card
+2. Frontend calls  GET /stream/<track_id>
+3. Flask uses boto3 + IAM role to call S3.generate_presigned_url()
+4. S3 returns a signed URL valid for 1 hour
+5. Frontend sets  <audio>.src = signed_url
+6. Browser streams MP3 directly from S3
+7. Flask logs a play_event to MySQL
+8. Track play_count increments in DB
+```
+
+**Key security point:** MP3 files are never public. Every URL is unique, time-limited, and tied to IAM credentials. No hardcoded keys anywhere in the code.
+
+---
+
+## 🗄️ Database Schema
+
+```sql
+users          — Platform users with role_id (admin/manager/staff)
+roles          — Role definitions and permissions
+tracks         — Music catalog with S3 keys
+play_events    — Every stream event (analytics source)
+system_metrics — CPU/memory/disk readings over time
+audit_log      — Every user action for compliance
+tasks          — Workflow tasks with status and assignment
+```
+
+**Default users (password: Admin@123):**
+| Username | Role | Access |
+|---|---|---|
+| admin | Admin | Full platform |
+| manager | Manager | Catalog + Analytics |
+| staff | Staff | Read-only catalog |
+
+---
+
+## 🐳 Docker Architecture
+
+```yaml
+services:
+  api:    Flask backend  — port 5001  — connects to db + S3
+  db:     MySQL 8.0      — port 3306  — auto-applies schema.sql
+  nginx:  Nginx reverse  — port 80    — proxies /api/ to Flask
+```
+
+```bash
+# Start everything
+docker-compose up -d
+
+# Check status
+docker ps
+
+# View API logs
+docker logs musicnation-api -f
+
+# Stop everything
 docker-compose down
+
+# Rebuild after code change
+docker-compose build api && docker-compose up -d api
 ```
 
 ---
 
-## 📡 API Endpoints
+## 🔧 Linux Administration
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/` | GET | Service health check and status |
-| `/health` | GET | Liveness probe for load balancers |
-| `/catalog` | GET | Music catalog with track metadata |
-| `/buckets` | GET | S3 bucket inventory (IAM role validation) |
-| `/metrics` | GET | Real-time system performance data |
-| `/audit` | GET | Security audit log entries |
-| `/users` | GET/POST | User management and RBAC |
-| `/analytics` | GET | Aggregated platform analytics |
-
----
-
-## 🔒 Security Architecture
-
-### Principle of Least Privilege
-- No hardcoded AWS credentials in application code
-- IAM role-based temporary credential rotation (1-hour TTL)
-- Secrets stored in encrypted environment variables
-- Network isolation through security group enforcement
-
-### Network Segmentation
-- Public subnets: Nginx reverse proxy layer only
-- Private subnets: Databases and cache engines completely hidden
-- Security groups: Stateful firewall filtering by application port
-- Zero-trust verification: Every request validated against RBAC matrices
-
-### Data Protection
-- Server-side encryption (SSE-S3) on all S3 buckets
-- MySQL password hashing and session encryption
-- Audit logging of all access and modifications
-- Automated backup encryption with S3 storage class transitions
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Orchestration** | Docker Compose | Multi-container lifecycle management |
-| **Reverse Proxy** | Nginx | Load balancing, static file serving, request routing |
-| **Application** | Flask (Python) | REST API gateway and business logic |
-| **Database** | MySQL | Relational data storage and analytics |
-| **Cache** | Redis | Sub-millisecond session and metadata caching |
-| **Storage** | AWS S3 | Encrypted object storage with lifecycle policies |
-| **Automation** | Bash Scripts | Deployment, monitoring, backup orchestration |
-| **Daemon** | Systemd | Native OS service management |
-| **Monitoring** | Custom Scripts | Real-time metrics collection and alerting |
-| **Cloud Infrastructure** | AWS (VPC, Security Groups, IAM) | Network isolation and access control |
-
----
-
-## 📊 Operational Metrics
-
-### Current Performance
-- **Container Health**: 3/3 containers running continuously
-- **Uptime Target**: 99.9% (Multi-AZ deployment ready)
-- **Response Latency**: Sub-100ms API responses
-- **Concurrent Users**: Support for 1000+ simultaneous connections
-- **Database Throughput**: 10,000+ queries/second capacity
-
-### Disaster Recovery
-- **RPO (Recovery Point Objective)**: 15 minutes (backup frequency)
-- **RTO (Recovery Time Objective)**: 5 minutes (container restart)
-- **Backup Retention**: 7-day rolling window with S3 archival
-- **Failover Strategy**: Automated container recreation via systemd
-
----
-
-## 💾 Backup & Recovery
-
-### Automated Backup Pipeline
+### systemd Service (EC2 Production)
 ```bash
-# Runs every 6 hours via cron
-./scripts/backup.sh
+# Install Flask as a system service
+sudo cp scripts/musicnation-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable musicnation-api
+sudo systemctl start musicnation-api
 
-# Performs:
-# 1. MySQL database dump to compressed archive
-# 2. Encryption with S3-managed keys
-# 3. Upload to S3 with timestamped naming
-# 4. Cleanup of local temporary files
+# Check status
+sudo systemctl status musicnation-api
 ```
 
-### Recovery Process
+### Cron Jobs
 ```bash
-# Restore from S3 backup
-aws s3 cp s3://backup-bucket/musicnation-backup-*.sql.gz ./
-gunzip musicnation-backup-*.sql.gz
-mysql -u root -p < musicnation-backup-*.sql
+# Install all automated tasks
+bash scripts/setup_cron.sh
+
+# What gets scheduled:
+# 0 2 * * *    Daily database backup to S3 at 2AM
+# */5 * * * *  System health check every 5 minutes
+# */50 * * * * S3 URL cache refresh every 50 minutes
+# 0 3 * * 0   Weekly log rotation
 ```
 
----
-
-## 🧪 Testing & Validation
-
-### Service Health Verification
+### Deploy via SCP
 ```bash
-# Check Nginx status
-curl http://localhost/
-
-# Verify Flask API
-curl http://localhost:5000/health
-
-# Validate database connection
-docker-compose exec mysql mysql -u root -p -e "SELECT 1;"
-
-# Test Redis cache
-docker-compose exec redis redis-cli ping
-
-# Validate S3 connectivity
-curl http://localhost:5000/buckets
+# Transfer files to EC2 and restart services
+bash scripts/scp_deploy.sh
 ```
 
-### Performance Monitoring
+### Firewall (UFW)
 ```bash
-# Real-time system metrics
-./scripts/monitor.sh
-
-# View application logs
-docker-compose logs -f flask
-
-# Check container resource usage
-docker stats
+sudo ufw allow 22    # SSH
+sudo ufw allow 80    # HTTP
+sudo ufw allow 443   # HTTPS
+sudo ufw deny 3306   # Block MySQL from internet
+sudo ufw enable
 ```
 
 ---
 
-## 📈 FinOps & Cost Optimization
+## 📊 Dashboard Pages
 
-### Infrastructure Cost Breakdown
-- **Compute**: EC2 t3.micro instance (≈$8/month)
-- **Storage**: 20GB EBS + S3 backups (≈$5/month)
-- **Networking**: NAT Gateway + data transfer (⚠️ ≈$32/month if active)
-- **Database**: RDS/managed MySQL (≈$15/month)
-- **Cache**: ElastiCache Redis (≈$12/month)
-
-### Optimization Recommendations
-1. **Delete NAT Gateway after project submission** (saves $32/month)
-2. **Implement S3 Intelligent-Tiering** (saves 30% on storage)
-3. **Use compute savings plans** (saves 20-40% on EC2)
-4. **Archive backups to Glacier** (saves 70% after 30 days)
-5. **Implement reserved capacity** (saves 50% for 1-year commitment)
+| Page | What it shows |
+|---|---|
+| **Home Portal** | Hero banner, live track catalog, platform stats |
+| **Search Catalog** | Live search by song title or artist |
+| **Cloud Library** | Real S3 bucket contents with file status |
+| **Analytics** | Play counts, top tracks chart, regional breakdown |
+| **Monitoring** | Live CPU/memory/disk gauges, service status, history |
+| **Pricing** | Full AWS cost table, multi-region costs, RPO/RTO |
+| **Access Control** | RBAC users table, role definitions, audit log |
 
 ---
 
-## 🎓 Learning Resources
+## 🔐 Security Architecture
 
-### Viva Preparation Topics
-- Linux system administration and process management
-- Docker containerization and multi-container orchestration
-- MySQL database design and backup strategies
-- AWS cloud networking and security groups
-- CI/CD deployment pipelines
-- Role-based access control implementation
-- System monitoring and alerting frameworks
-- Cost optimization and FinOps strategies
-
-### Documentation Files
-- `docs/architecture.md`: Deep-dive architectural decisions
-- `docs/api-reference.md`: Complete API endpoint reference
-- `docs/deployment-guide.md`: Step-by-step deployment instructions
+| Layer | Implementation |
+|---|---|
+| **Credential-less auth** | EC2 IAM role — no hardcoded keys anywhere |
+| **Network isolation** | RDS + ElastiCache in private subnets only |
+| **Audio security** | Pre-signed S3 URLs (1hr expiry, never public) |
+| **Web security** | Nginx security headers + rate limiting (30 req/min) |
+| **Password security** | bcrypt hashing — passwords never stored in plain text |
+| **Audit trail** | Every action logged to `audit_log` table |
+| **Firewall** | UFW + Security Groups block all non-essential ports |
 
 ---
 
-## 📞 Support & Troubleshooting
+## 💰 Pricing Strategy
 
-### Common Issues
+| Service | Monthly Cost |
+|---|---|
+| EC2 t3.medium | $30.22 |
+| EBS gp3 30GB | $2.40 |
+| Amazon S3 | $0.02 |
+| RDS MySQL t3.micro | $13.00 |
+| ElastiCache t3.micro | $11.52 |
+| CloudFront 100GB | $8.50 |
+| Application Load Balancer | $16.20 |
+| CloudWatch | $5.00 |
+| WAF + Shield Standard | $15.00 |
+| SQS | $0.40 |
+| **Total** | **~$103/month** |
 
-**Container won't start:**
-```bash
-# Check logs
-docker-compose logs flask
+**Multi-region (Mumbai + Virginia):** ~$148.50/month
 
-# Rebuild containers
-docker-compose build --no-cache
-docker-compose up -d
-```
+**Cost Optimization:**
+- 1-year Reserved EC2 → saves 38%
+- S3 Intelligent Tiering → auto-moves cold files to cheaper storage
+- CloudFront caching → reduces S3 egress by up to 70%
+- Auto Scaling → scale between 1–4 EC2 instances based on load
 
-**Database connection errors:**
-```bash
-# Verify MySQL is running
-docker-compose ps mysql
-
-# Check MySQL logs
-docker-compose logs mysql
-
-# Recreate database volume
-docker volume rm musicnation_mysql_data
-docker-compose up -d
-```
-
-**Port conflicts:**
-```bash
-# Find process on port
-lsof -i :5000 | grep LISTEN
-
-# Kill process
-kill -9 <PID>
-
-# Or use alternate port
-export FLASK_PORT=8000
-docker-compose up -d
-```
+**Disaster Recovery:**
+- RPO: 24 hours (daily automated backups to S3)
+- RTO: 4 hours (automated restore + health verification)
 
 ---
 
-## 🏆 Project Achievements
+## 🛠️ Tech Stack
 
-✅ **Cloud Architecture**: Multi-AZ VPC with complete network isolation  
-✅ **Linux Administration**: Systemd, cron, monitoring, and automated deployments  
-✅ **Containerization**: Fully containerized multi-service environment  
-✅ **Database Management**: Relational schema with automated backups  
-✅ **DevOps Pipeline**: Git-based CI/CD with zero-downtime deployments  
-✅ **Governance**: RBAC with audit logging and access control  
-✅ **Monitoring**: Real-time metrics and alerting dashboard  
-✅ **FinOps**: Complete cost analysis and optimization strategy  
-✅ **Documentation**: Comprehensive architectural and operational guides  
-✅ **Production-Ready**: Enterprise-grade reliability and scalability  
-
----
-
-## 📝 License
-
-This project is developed as a coursework submission for ITM Skills University B.Tech CSE Program (Semester IV).
+| Layer | Technology |
+|---|---|
+| Frontend | HTML5, Tailwind CSS, Vanilla JS, Font Awesome |
+| Backend | Python 3.11, Flask 3.1, Flask-CORS |
+| Database | MySQL 8.0 (Docker), Amazon RDS (production) |
+| Cloud | AWS EC2, S3, IAM, RDS, VPC, CloudFront, SQS, ElastiCache |
+| Container | Docker, docker-compose |
+| Web Server | Nginx (reverse proxy + rate limiting) |
+| Monitoring | psutil (system metrics), custom `/metrics` API |
+| Automation | Bash scripts, cron, systemd |
+| Audio | HTML5 Audio API, S3 pre-signed URLs |
+| Lyrics | lyrics.ovh public API |
 
 ---
 
-## 👤 Author
+## 👨‍💻 Author
 
-**Soham Ahirrao**  
-B.Tech CSE 2024-2028  
-ITM Skills University, Kharghar  
-Amazon Web Services Case Study - Semester IV
-
----
-
-## 🔗 Links
-
-- **Live Application**: http://3.108.56.235/
-- **API Gateway**: http://3.108.56.235:5000/
-- **GitHub Repository**: https://github.com/Soham-bot/musicnation-cloud-platform
-- **AWS Account Region**: Asia Pacific (Mumbai) - ap-south-1
-
----
-
-**Last Updated**: June 2026  
-**Project Status**: ✅ Production Ready# musicnation-cloud-platform
+**Soham Ahirrao**
+B.Tech CSE 2024–2028 | ITM Skills University
+AWS Case Study — Semester IV
