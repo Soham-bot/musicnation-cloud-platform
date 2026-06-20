@@ -458,7 +458,7 @@ Amazon Web Services Case Study - Semester IV
 
 - **Live Application**: http://3.108.56.235/
 - **API Gateway**: http://3.108.56.235:5000/
-- **GitHub Repository**: [https://github.com/YOUR_USERNAME/musicnation-cloud-platform](https://github.com/Soham-bot/musicnation-cloud-platform)
+- **GitHub Repository**: https://github.com/Soham-bot/musicnation-cloud-platform
 - **AWS Account Region**: Asia Pacific (Mumbai) - ap-south-1
 
 ---
